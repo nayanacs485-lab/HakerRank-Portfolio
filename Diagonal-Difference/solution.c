@@ -12,73 +12,53 @@
 char* readline();
 char* ltrim(char*);
 char* rtrim(char*);
+char** split_string(char*);
+
 int parse_int(char*);
 
 /*
- * Complete the 'matchingStrings' function below.
+ * Complete the 'diagonalDifference' function below.
  *
- * The function is expected to return an INTEGER_ARRAY.
- * The function accepts following parameters:
- *  1. STRING_ARRAY stringList
- *  2. STRING_ARRAY queries
+ * The function is expected to return an INTEGER.
+ * The function accepts 2D_INTEGER_ARRAY arr as parameter.
  */
-int* matchingStrings(int stringList_count, char** stringList, int queries_count, char** queries, int* result_count) {
-    // Allocate memory for result array
-    int* result = malloc(queries_count * sizeof(int));
+int diagonalDifference(int arr_rows, int arr_columns, int** arr) {
+    int primarySum = 0;
+    int secondarySum = 0;
 
-    // Initialize counts to 0
-    for (int i = 0; i < queries_count; i++) {
-        result[i] = 0;
+    for (int i = 0; i < arr_rows; i++) {
+        primarySum += arr[i][i];                  // main diagonal
+        secondarySum += arr[i][arr_rows - 1 - i]; // secondary diagonal
     }
 
-    // Compare each query with all strings in stringList
-    for (int i = 0; i < queries_count; i++) {
-        for (int j = 0; j < stringList_count; j++) {
-            if (strcmp(queries[i], stringList[j]) == 0) {
-                result[i]++;  // Found a match
-            }
-        }
-    }
-
-    // Set result_count to number of queries
-    *result_count = queries_count;
-
-    return result;
+    int diff = primarySum - secondarySum;
+    if (diff < 0) diff = -diff; // absolute value
+    return diff;
 }
 
 int main()
 {
     FILE* fptr = fopen(getenv("OUTPUT_PATH"), "w");
 
-    int stringList_count = parse_int(ltrim(rtrim(readline())));
+    int n = parse_int(ltrim(rtrim(readline())));
 
-    char** stringList = malloc(stringList_count * sizeof(char*));
+    int** arr = malloc(n * sizeof(int*));
 
-    for (int i = 0; i < stringList_count; i++) {
-        char* stringList_item = readline();
-        *(stringList + i) = stringList_item;
-    }
+    for (int i = 0; i < n; i++) {
+        *(arr + i) = malloc(n * (sizeof(int)));
 
-    int queries_count = parse_int(ltrim(rtrim(readline())));
+        char** arr_item_temp = split_string(rtrim(readline()));
 
-    char** queries = malloc(queries_count * sizeof(char*));
-
-    for (int i = 0; i < queries_count; i++) {
-        char* queries_item = readline();
-        *(queries + i) = queries_item;
-    }
-
-    int res_count;
-    int* res = matchingStrings(stringList_count, stringList, queries_count, queries, &res_count);
-
-    for (int i = 0; i < res_count; i++) {
-        fprintf(fptr, "%d", *(res + i));
-        if (i != res_count - 1) {
-            fprintf(fptr, "\n");
+        for (int j = 0; j < n; j++) {
+            int arr_item = parse_int(*(arr_item_temp + j));
+            *(*(arr + i) + j) = arr_item;
         }
     }
 
-    fprintf(fptr, "\n");
+    int result = diagonalDifference(n, n, arr);
+
+    fprintf(fptr, "%d\n", result);
+
     fclose(fptr);
 
     return 0;
@@ -87,84 +67,63 @@ int main()
 char* readline() {
     size_t alloc_length = 1024;
     size_t data_length = 0;
-
     char* data = malloc(alloc_length);
 
     while (true) {
         char* cursor = data + data_length;
         char* line = fgets(cursor, alloc_length - data_length, stdin);
-
-        if (!line) {
-            break;
-        }
-
+        if (!line) break;
         data_length += strlen(cursor);
-
-        if (data_length < alloc_length - 1 || data[data_length - 1] == '\n') {
-            break;
-        }
-
+        if (data_length < alloc_length - 1 || data[data_length - 1] == '\n') break;
         alloc_length <<= 1;
         data = realloc(data, alloc_length);
-
-        if (!data) {
-            data = '\0';
-            break;
-        }
+        if (!data) { data = '\0'; break; }
     }
 
     if (data[data_length - 1] == '\n') {
         data[data_length - 1] = '\0';
         data = realloc(data, data_length);
-        if (!data) {
-            data = '\0';
-        }
+        if (!data) data = '\0';
     } else {
         data = realloc(data, data_length + 1);
-        if (!data) {
-            data = '\0';
-        } else {
-            data[data_length] = '\0';
-        }
+        if (!data) data = '\0';
+        else data[data_length] = '\0';
     }
-
     return data;
 }
 
 char* ltrim(char* str) {
-    if (!str) {
-        return '\0';
-    }
-    if (!*str) {
-        return str;
-    }
-    while (*str != '\0' && isspace(*str)) {
-        str++;
-    }
+    if (!str) return '\0';
+    if (!*str) return str;
+    while (*str != '\0' && isspace(*str)) str++;
     return str;
 }
 
 char* rtrim(char* str) {
-    if (!str) {
-        return '\0';
-    }
-    if (!*str) {
-        return str;
-    }
+    if (!str) return '\0';
+    if (!*str) return str;
     char* end = str + strlen(str) - 1;
-    while (end >= str && isspace(*end)) {
-        end--;
-    }
+    while (end >= str && isspace(*end)) end--;
     *(end + 1) = '\0';
     return str;
+}
+
+char** split_string(char* str) {
+    char** splits = NULL;
+    char* token = strtok(str, " ");
+    int spaces = 0;
+    while (token) {
+        splits = realloc(splits, sizeof(char*) * ++spaces);
+        if (!splits) return splits;
+        splits[spaces - 1] = token;
+        token = strtok(NULL, " ");
+    }
+    return splits;
 }
 
 int parse_int(char* str) {
     char* endptr;
     int value = strtol(str, &endptr, 10);
-    if (endptr == str || *endptr != '\0') {
-        exit(EXIT_FAILURE);
-    }
+    if (endptr == str || *endptr != '\0') exit(EXIT_FAILURE);
     return value;
 }
-
